@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     
     # Security
-    secret_key: str = "change-this-in-production"
+    secret_key: Optional[str] = None  # Must be set via environment variable - no default for security
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
@@ -74,6 +74,17 @@ class Settings(BaseSettings):
     # Monitoring
     enable_metrics: bool = True
     metrics_port: int = 9090
+    
+    def __init__(self, **kwargs):
+        """Initialize settings and validate security configuration."""
+        super().__init__(**kwargs)
+        if not self.secret_key:
+            raise ValueError(
+                "SECRET_KEY must be set via environment variable. "
+                "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+            )
+        if self.secret_key == "change-this-in-production":
+            raise ValueError("SECRET_KEY cannot use the default value. Please set a secure random key.")
     
     @property
     def is_production(self) -> bool:
