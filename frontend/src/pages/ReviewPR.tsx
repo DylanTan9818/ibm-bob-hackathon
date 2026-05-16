@@ -351,7 +351,7 @@ export default function ReviewPR() {
           </div>
 
           {/* Security Issues */}
-          {result.data.security_issues.length > 0 && (
+          {result.data.security_issues && result.data.security_issues.length > 0 && (
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="font-semibold mb-4 flex items-center text-lg">
                 <svg className="w-6 h-6 mr-2 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,7 +382,7 @@ export default function ReviewPR() {
           )}
 
           {/* Policy Violations */}
-          {result.data.policy_violations.length > 0 && (
+          {result.data.policy_violations && result.data.policy_violations.length > 0 && (
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="font-semibold mb-4 flex items-center text-lg">
                 <svg className="w-6 h-6 mr-2 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -410,7 +410,7 @@ export default function ReviewPR() {
           )}
 
           {/* Recommendations */}
-          {result.data.recommendations.length > 0 && (
+          {result.data.recommendations && result.data.recommendations.length > 0 && (
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="font-semibold mb-4 flex items-center text-lg">
                 <svg className="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
