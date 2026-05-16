@@ -145,10 +145,15 @@ print(f"Task created: {task_id}")
 Key environment variables in `.env`:
 
 ```env
-# LLM Configuration
+# Security (REQUIRED - see .env.example for generation instructions)
+SECRET_KEY=<your-secure-random-key>
+
+# LLM Configuration (choose one provider)
 OPENAI_API_KEY=your_openai_key
 ANTHROPIC_API_KEY=your_anthropic_key
-LLM_PROVIDER=openai  # or anthropic
+DASHSCOPE_API_KEY=your_dashscope_key
+LLM_PROVIDER=dashscope  # openai, anthropic, or dashscope
+LLM_MODEL=qwen-plus
 
 # Database
 DATABASE_URL=postgresql://user:pass@localhost:5432/devops_autopilot
@@ -156,23 +161,29 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/devops_autopilot
 # Redis
 REDIS_URL=redis://localhost:6379
 
+# ChromaDB
+CHROMA_PERSIST_DIRECTORY=/data/chromadb
+
 # Application
 API_HOST=0.0.0.0
 API_PORT=8000
 LOG_LEVEL=INFO
+HUMAN_APPROVAL_REQUIRED=true
 ```
 
 ## 🤖 Agent Details
 
 ### Triage Agent
-- Analyzes incident severity using historical data
+- Analyzes incident severity using historical data and ChromaDB similarity search
 - Routes to appropriate team based on keywords and patterns
 - Suggests initial troubleshooting steps
+- **NEW**: Finds similar past incidents to provide context and faster resolution
 
 ### Runbook Agent
-- Searches vector database of past incidents
-- Generates step-by-step resolution procedures
+- Searches ChromaDB vector database of past incidents
+- Generates step-by-step resolution procedures based on similar incidents
 - Links to relevant documentation
+- **NEW**: Learns from past resolutions to improve recommendations
 
 ### PR Review Agent
 - Checks code against policy rules (security, style, best practices)
@@ -191,10 +202,24 @@ LOG_LEVEL=INFO
 cd backend
 pytest
 
+# Run specific test suites
+pytest tests/test_incident_store.py -v  # ChromaDB integration tests
+
 # Frontend tests
 cd frontend
 npm test
 ```
+
+### Demo Data
+
+The system automatically seeds 5 demo incidents on first startup for immediate testing:
+- High CPU usage on payment service
+- Database connection pool exhausted
+- Memory leak in order processing
+- Disk full on logging server
+- SSL certificate expiry
+
+These incidents enable similarity search to work immediately without manual data entry.
 
 ## 📊 Monitoring
 
