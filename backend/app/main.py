@@ -4,6 +4,7 @@ FastAPI application entry point.
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from datetime import datetime
 import structlog
 import uuid
 
@@ -102,8 +103,8 @@ async def triage_incident(
         status=TaskStatus.PENDING,
         metadata=request.metadata,
         requires_approval=settings.human_approval_required,
-        created_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()(),
-        updated_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
     
     tasks_db[task_id] = task
@@ -148,8 +149,8 @@ async def generate_runbook(
         status=TaskStatus.PENDING,
         metadata=request.metadata,
         requires_approval=settings.human_approval_required,
-        created_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()(),
-        updated_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
     
     tasks_db[task_id] = task
@@ -194,8 +195,8 @@ async def review_pr(
         status=TaskStatus.PENDING,
         metadata={"pr_url": request.pr_url, "repository": request.repository},
         requires_approval=settings.human_approval_required,
-        created_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()(),
-        updated_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
     
     tasks_db[task_id] = task
@@ -239,8 +240,8 @@ async def generate_documentation(
         status=TaskStatus.PENDING,
         metadata=request.metadata,
         requires_approval=settings.human_approval_required,
-        created_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()(),
-        updated_at=structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
     
     tasks_db[task_id] = task
@@ -316,7 +317,7 @@ async def approve_task(
     
     # Update task
     task.approved_by = request.approved_by
-    task.approved_at = structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+    task.approved_at = datetime.now()
     
     if request.approved:
         task.status = TaskStatus.APPROVED
@@ -327,7 +328,7 @@ async def approve_task(
         task.status = TaskStatus.REJECTED
         logger.info("task_rejected", task_id=task_id, approved_by=request.approved_by)
     
-    task.updated_at = structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+    task.updated_at = datetime.now()
     
     return task
 
@@ -348,7 +349,7 @@ async def process_task_async(
             task.result = result.get("results")
             task.error = result.get("error")
             task.assigned_agent = result.get("current_agent")
-            task.updated_at = structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+            task.updated_at = datetime.now()
         
     except Exception as e:
         logger.error("task_processing_failed", task_id=task_id, error=str(e))
@@ -356,7 +357,7 @@ async def process_task_async(
             task = tasks_db[task_id]
             task.status = TaskStatus.FAILED
             task.error = str(e)
-            task.updated_at = structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+            task.updated_at = datetime.now()
 
 
 async def finalize_task(task_id: str):
@@ -364,7 +365,7 @@ async def finalize_task(task_id: str):
     if task_id in tasks_db:
         task = tasks_db[task_id]
         task.status = TaskStatus.COMPLETED
-        task.updated_at = structlog.processors.TimeStamper(fmt="iso")._make_stamper()()
+        task.updated_at = datetime.now()
         logger.info("task_finalized", task_id=task_id)
 
 
