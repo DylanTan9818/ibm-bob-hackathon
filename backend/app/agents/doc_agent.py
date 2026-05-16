@@ -21,6 +21,7 @@ Your role is to generate clear, comprehensive documentation including:
 - Release notes
 - Post-mortem reports
 - Changelogs
+- Architecture diagrams
 - Incident summaries
 
 Guidelines for each document type:
@@ -46,14 +47,30 @@ CHANGELOG:
 - Clear, concise descriptions
 - Links to issues/PRs
 
+ARCHITECTURE DIAGRAM:
+- Analyze code repository structure
+- Identify main components and their relationships
+- Generate Mermaid diagram syntax
+- Include data flow and dependencies
+- Show API endpoints, services, databases, etc.
+
+IMPORTANT MERMAID SYNTAX RULES:
+- Use square brackets [] for node labels, NOT parentheses ()
+- Avoid special characters in node labels (use quotes if needed)
+- Use simple, clear node IDs (A, B, C or descriptive names)
+- Valid shapes: [Rectangle], (Rounded), ([Stadium]), [[Subroutine]], [(Database)], {{Hexagon}}, [/Parallelogram/], [\Parallelogram\], [/Trapezoid\], [\Trapezoid/]
+- For text with special chars, use quotes: A["Text with (parens)"]
+- Example: Frontend[Frontend App] -->|API| Backend[Backend Service]
+
 Format your output as JSON:
 {
-    "doc_type": "release_notes|postmortem|changelog",
+    "doc_type": "release_notes|postmortem|changelog|architecture_diagram",
     "title": "Document title",
     "content": "Full markdown content",
     "sections": {
         "section_name": "section_content"
     },
+    "mermaid_diagram": "mermaid diagram code (only for architecture_diagram)",
     "metadata": {
         "version": "if applicable",
         "date": "ISO date",
@@ -87,6 +104,8 @@ Format your output as JSON:
             return await self._generate_postmortem(input_data)
         elif doc_type == "changelog":
             return await self._generate_changelog(input_data)
+        elif doc_type == "architecture_diagram":
+            return await self._generate_architecture_diagram(input_data)
         else:
             raise ValueError(f"Unsupported document type: {doc_type}")
     
@@ -229,6 +248,102 @@ Generate a well-organized changelog in the specified JSON format."""
         except Exception as e:
             self.logger.error("changelog_generation_failed", error=str(e))
             raise
+    
+    async def _generate_architecture_diagram(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate architecture diagram from code repository analysis."""
+        repository = input_data.get("repository", "Unknown")
+        metadata = input_data.get("metadata", {})
+        
+        # In production, this would analyze actual repository structure
+        repo_structure = await self._analyze_repository(repository)
+        
+        user_prompt = f"""Generate an architecture diagram for this repository:
+
+Repository Name: {repository}
+
+Based on the repository name and common software architecture patterns, infer and generate a comprehensive architecture diagram that shows:
+1. Likely main components (frontend, backend, database, cache, message queues, etc.)
+2. Data flow between components
+3. Common external services and APIs for this type of application
+4. Typical technologies used in such projects
+
+IMPORTANT:
+- Analyze the repository NAME to understand what type of application it is
+- Generate a realistic, typical architecture for that type of application
+- DO NOT use any hardcoded mock data
+- Infer components based on the repository name and common patterns
+
+CRITICAL Mermaid syntax rules:
+- Use square brackets [] for node labels
+- DO NOT use parentheses () in node text - use quotes if needed
+- Use simple node IDs without special characters
+- Valid example: Frontend[Frontend App] -->|API| Backend[Backend Service]
+- For database: DB[(Database)]
+- For text with special chars: Node["Text with special-chars"]
+
+Return the result in JSON format with:
+- doc_type: "architecture_diagram"
+- title: A descriptive title based on the repository
+- content: A brief description of the inferred architecture
+- mermaid_diagram: The complete Mermaid diagram code (without ```mermaid wrapper)
+- sections: Key architectural components and their descriptions
+- metadata: Any relevant metadata
+
+Example Mermaid diagram format (DO NOT copy this, generate based on repository):
+graph TB
+    Frontend[Web Frontend] -->|HTTPS| API[API Gateway]
+    API -->|Query| DB[(Database)]
+    API -->|Cache| Cache[(Redis)]
+"""
+        
+        try:
+            response = await self.invoke_llm(
+                system_prompt=self.system_prompt,
+                user_prompt=user_prompt
+            )
+            
+            result = self._parse_response(response)
+            
+            self.logger.info(
+                "architecture_diagram_generated",
+                repository=repository
+            )
+            
+            return self.format_output(result)
+            
+        except Exception as e:
+            self.logger.error("architecture_diagram_generation_failed", error=str(e))
+            raise
+    
+    async def _analyze_repository(self, repository: str) -> Dict[str, Any]:
+        """Analyze repository structure."""
+        # TODO: Implement actual repository analysis by cloning/fetching the repo
+        # For now, return minimal structure so AI generates based on repository name
+        
+        return {
+            "repository_name": repository,
+            "note": "AI will infer architecture from repository name and common patterns"
+        }
+    
+    def _format_repo_structure(self, structure: Dict[str, Any]) -> str:
+        """Format repository structure for prompt."""
+        formatted = []
+        
+        formatted.append("Directories:")
+        for dir in structure.get("directories", []):
+            formatted.append(f"  - {dir}")
+        
+        formatted.append("\nKey Files:")
+        for location, files in structure.get("files", {}).items():
+            formatted.append(f"  {location}:")
+            for file in files:
+                formatted.append(f"    - {file}")
+        
+        formatted.append("\nTechnologies:")
+        for component, tech in structure.get("technologies", {}).items():
+            formatted.append(f"  {component}: {tech}")
+        
+        return "\n".join(formatted)
     
     def _parse_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response and extract documentation."""

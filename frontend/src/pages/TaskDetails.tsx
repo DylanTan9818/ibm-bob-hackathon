@@ -1,9 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import mermaid from 'mermaid'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+// Initialize Mermaid
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#3b82f6',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#1e40af',
+    lineColor: '#60a5fa',
+    secondaryColor: '#10b981',
+    tertiaryColor: '#8b5cf6',
+  }
+})
 
 interface Task {
   id: string
@@ -25,6 +40,7 @@ export default function TaskDetails() {
   const { taskId } = useParams<{ taskId: string }>()
   const [approving, setApproving] = useState(false)
   const [approvalError, setApprovalError] = useState('')
+  const mermaidRef = useRef<HTMLDivElement>(null)
 
   const { data: task, isLoading, refetch } = useQuery({
     queryKey: ['task', taskId],
@@ -40,6 +56,23 @@ export default function TaskDetails() {
       return 3000 // Refetch every 3 seconds
     },
   })
+
+  // Render Mermaid diagram when task result contains mermaid_diagram
+  useEffect(() => {
+    if (task?.result?.data?.mermaid_diagram && mermaidRef.current) {
+      const renderDiagram = async () => {
+        try {
+          mermaidRef.current!.innerHTML = ''
+          const { svg } = await mermaid.render('task-mermaid-diagram', task.result.data.mermaid_diagram)
+          mermaidRef.current!.innerHTML = svg
+        } catch (error) {
+          console.error('Error rendering Mermaid diagram:', error)
+          mermaidRef.current!.innerHTML = '<p class="text-red-400">Error rendering diagram</p>'
+        }
+      }
+      renderDiagram()
+    }
+  }, [task?.result?.data?.mermaid_diagram])
 
   const handleApproval = async (approved: boolean) => {
     setApproving(true)
@@ -330,6 +363,15 @@ export default function TaskDetails() {
           <h2 className="text-2xl font-bold mb-2">{data.title}</h2>
           <p className="text-gray-400 capitalize">{data.doc_type?.replace('_', ' ')}</p>
         </div>
+
+        {data.mermaid_diagram && (
+          <div className="bg-gray-700 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-3">Architecture Diagram</h3>
+            <div className="bg-white rounded-lg p-6 overflow-x-auto">
+              <div ref={mermaidRef} className="flex justify-center"></div>
+            </div>
+          </div>
+        )}
 
         {data.sections && Object.keys(data.sections).length > 0 && (
           <div className="space-y-4">

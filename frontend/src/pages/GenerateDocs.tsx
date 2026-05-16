@@ -1,13 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
+import mermaid from 'mermaid'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+// Initialize Mermaid
+mermaid.initialize({ 
+  startOnLoad: true,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#3b82f6',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#1e40af',
+    lineColor: '#60a5fa',
+    secondaryColor: '#10b981',
+    tertiaryColor: '#8b5cf6',
+  }
+})
 
 interface DocResult {
   doc_type: string
   title: string
   content: string
   sections: Record<string, string>
+  mermaid_diagram?: string
   metadata: {
     version?: string
     date?: string
@@ -31,6 +47,7 @@ export default function GenerateDocs() {
   const [taskId, setTaskId] = useState<string | null>(null)
   const [taskStatus, setTaskStatus] = useState<string>('')
   const [result, setResult] = useState<TaskResult | null>(null)
+  const mermaidRef = useRef<HTMLDivElement>(null)
   const [formData, setFormData] = useState({
     doc_type: 'release_notes',
     repository: '',
@@ -66,6 +83,23 @@ export default function GenerateDocs() {
 
     return () => clearInterval(pollInterval)
   }, [taskId])
+
+  // Render Mermaid diagram when result changes
+  useEffect(() => {
+    if (result?.data.mermaid_diagram && mermaidRef.current) {
+      const renderDiagram = async () => {
+        try {
+          mermaidRef.current!.innerHTML = ''
+          const { svg } = await mermaid.render('mermaid-diagram', result.data.mermaid_diagram!)
+          mermaidRef.current!.innerHTML = svg
+        } catch (error) {
+          console.error('Error rendering Mermaid diagram:', error)
+          mermaidRef.current!.innerHTML = '<p class="text-red-400">Error rendering diagram</p>'
+        }
+      }
+      renderDiagram()
+    }
+  }, [result])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,6 +154,12 @@ export default function GenerateDocs() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         )
+      case 'architecture_diagram':
+        return (
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+        )
       default:
         return null
     }
@@ -129,6 +169,11 @@ export default function GenerateDocs() {
     if (!result) return
     
     let text = `# ${result.data.title}\n\n`
+    
+    if (result.data.mermaid_diagram) {
+      text += `## Architecture Diagram\n\n\`\`\`mermaid\n${result.data.mermaid_diagram}\n\`\`\`\n\n`
+    }
+    
     Object.entries(result.data.sections || {}).forEach(([sectionName, sectionContent]) => {
       const formattedName = sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       text += `## ${formattedName}\n\n${sectionContent}\n\n`
@@ -145,7 +190,7 @@ export default function GenerateDocs() {
       {!result ? (
         <div className="bg-gray-800 rounded-lg p-6">
           <p className="text-gray-400 mb-6">
-            Automatically generate release notes, post-mortems, or changelogs from Git history
+            Automatically generate release notes, post-mortems, changelogs, or architecture diagrams from Git history
             or incident data.
           </p>
 
@@ -185,10 +230,11 @@ export default function GenerateDocs() {
                 <option value="release_notes">Release Notes</option>
                 <option value="postmortem">Post-Mortem</option>
                 <option value="changelog">Changelog</option>
+                <option value="architecture_diagram">Architecture Diagram</option>
               </select>
             </div>
 
-            {(formData.doc_type === 'release_notes' || formData.doc_type === 'changelog') && (
+            {(formData.doc_type === 'release_notes' || formData.doc_type === 'changelog' || formData.doc_type === 'architecture_diagram') && (
               <>
                 <div>
                   <label className="block text-sm font-medium mb-2">
@@ -204,35 +250,37 @@ export default function GenerateDocs() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      From Commit
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.from_commit}
-                      onChange={(e) => setFormData({ ...formData, from_commit: e.target.value })}
-                      className="w-full bg-gray-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="abc123 or v1.0.0"
-                      disabled={loading}
-                    />
-                  </div>
+                {formData.doc_type !== 'architecture_diagram' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        From Commit
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.from_commit}
+                        onChange={(e) => setFormData({ ...formData, from_commit: e.target.value })}
+                        className="w-full bg-gray-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="abc123 or v1.0.0"
+                        disabled={loading}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      To Commit
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.to_commit}
-                      onChange={(e) => setFormData({ ...formData, to_commit: e.target.value })}
-                      className="w-full bg-gray-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="HEAD or v2.0.0"
-                      disabled={loading}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        To Commit
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.to_commit}
+                        onChange={(e) => setFormData({ ...formData, to_commit: e.target.value })}
+                        className="w-full bg-gray-700 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="HEAD or v2.0.0"
+                        disabled={loading}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
 
@@ -280,6 +328,15 @@ export default function GenerateDocs() {
                     <li>• Removed features</li>
                     <li>• Bug fixes</li>
                     <li>• Security updates</li>
+                  </>
+                )}
+                {formData.doc_type === 'architecture_diagram' && (
+                  <>
+                    <li>• Visual Mermaid diagram of system architecture</li>
+                    <li>• Component relationships and data flow</li>
+                    <li>• Technology stack overview</li>
+                    <li>• Key architectural decisions</li>
+                    <li>• System dependencies</li>
                   </>
                 )}
               </ul>
@@ -344,26 +401,38 @@ export default function GenerateDocs() {
             </div>
           </div>
 
+          {/* Mermaid Diagram */}
+          {result.data.mermaid_diagram && (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Architecture Diagram</h3>
+              <div className="bg-white rounded-lg p-6 overflow-x-auto">
+                <div ref={mermaidRef} className="flex justify-center"></div>
+              </div>
+            </div>
+          )}
+
           {/* Document Content */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <div className="prose prose-invert max-w-none">
-              {Object.entries(result.data.sections || {}).map(([sectionName, sectionContent], index) => (
-                <div key={index} className="mb-8 last:mb-0">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center">
-                    <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
-                      {index + 1}
-                    </span>
-                    {sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </h3>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                      {sectionContent}
+          {result.data.sections && Object.keys(result.data.sections).length > 0 && (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <div className="prose prose-invert max-w-none">
+                {Object.entries(result.data.sections || {}).map(([sectionName, sectionContent]: [string, any], index: number) => (
+                  <div key={index} className="mb-8 last:mb-0">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center">
+                      <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                        {index + 1}
+                      </span>
+                      {sectionName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </h3>
+                    <div className="bg-gray-700 rounded-lg p-4">
+                      <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                        {sectionContent}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-4">
