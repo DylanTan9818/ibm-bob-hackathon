@@ -9,6 +9,7 @@ import structlog
 import uuid
 
 from app.core.config import settings
+from app.core.seed_demo_data import seed_demo_data
 from app.models.task import (
     TaskType, TaskStatus, TaskResponse,
     IncidentTriageRequest, IncidentTriageResult,
@@ -37,6 +38,7 @@ tasks_db: dict[str, Task] = {}
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("application_starting", environment=settings.environment)
+    seed_demo_data()
     yield
     logger.info("application_shutting_down")
 

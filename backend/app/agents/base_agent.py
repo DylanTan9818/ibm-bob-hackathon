@@ -3,9 +3,10 @@ Base agent class for all specialized agents.
 """
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
-from langchain.chat_models import ChatOpenAI, ChatAnthropic
-from langchain.schema import HumanMessage, SystemMessage
-from langchain.callbacks import get_openai_callback
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_community.callbacks import get_openai_callback
 import structlog
 
 from app.core.config import settings
@@ -51,7 +52,7 @@ class BaseAgent(ABC):
                 model=settings.llm_model,
                 temperature=settings.llm_temperature,
                 openai_api_key=settings.dashscope_api_key,
-                openai_api_base=settings.dashscope_base_url,
+                base_url=settings.dashscope_base_url,
                 max_retries=settings.max_agent_retries,
             )
         else:

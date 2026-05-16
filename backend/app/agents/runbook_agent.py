@@ -4,6 +4,7 @@ Runbook Agent - Generates resolution procedures from past incidents.
 from typing import Any, Dict
 import json
 from app.agents.base_agent import BaseAgent
+from app.core.incident_store import incident_store
 
 
 class RunbookAgent(BaseAgent):
@@ -194,16 +195,11 @@ Generate a comprehensive runbook in the specified JSON format."""
     ) -> list[Dict[str, Any]]:
         """
         Find similar past incidents using vector similarity search.
-        
-        In production, this would query ChromaDB with embeddings.
         """
-        # TODO: Implement vector similarity search with ChromaDB
-        # This would:
-        # 1. Generate embeddings for title + description
-        # 2. Query ChromaDB for similar incidents
-        # 3. Return top N similar incidents with their resolutions
-        
-        return []
+        query = f"{title}. {description}"
+        results = incident_store.find_similar_incidents(query, n_results=3)
+        self.logger.info("similar_incidents_found", count=len(results))
+        return results
     
     def _build_similar_incidents_context(
         self,
@@ -233,16 +229,18 @@ Generate a comprehensive runbook in the specified JSON format."""
             runbook: Generated runbook data
             incident_id: Associated incident ID
         """
-        # TODO: Implement storage in database and vector store
-        # This would:
-        # 1. Store runbook in PostgreSQL
-        # 2. Create embeddings and store in ChromaDB
-        # 3. Link to incident for future retrieval
-        
-        self.logger.info(
-            "runbook_saved",
-            incident_id=incident_id,
-            runbook_title=runbook.get("title")
+        content = " ".join(
+            step.get("action", "") for step in runbook.get("steps", [])
         )
+        incident_store.store_runbook(
+            runbook_id=incident_id,
+            incident_title=runbook.get("title", ""),
+            content=content,
+            metadata={
+                "estimated_time": runbook.get("estimated_time", ""),
+                "steps_count": str(len(runbook.get("steps", []))),
+            }
+        )
+        self.logger.info("runbook_saved", incident_id=incident_id, title=runbook.get("title"))
 
 # Made with Bob

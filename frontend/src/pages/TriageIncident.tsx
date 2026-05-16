@@ -295,6 +295,64 @@ export default function TriageIncident() {
             </div>
           </div>
 
+          {/* Similar Incidents */}
+          {result.data.similar_incidents && result.data.similar_incidents.length > 0 && (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center">
+                <svg className="w-6 h-6 mr-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Similar Past Incidents
+              </h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Found {result.data.similar_incidents.length} similar incident{result.data.similar_incidents.length !== 1 ? 's' : ''} from history
+              </p>
+              <div className="space-y-4">
+                {result.data.similar_incidents.map((incident: any, index: number) => (
+                  <div key={index} className="bg-gray-700 rounded-lg p-4 border-l-4 border-green-500">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-lg">{incident.title}</h3>
+                      <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-sm font-medium">
+                        {(incident.similarity * 100).toFixed(1)}% match
+                      </span>
+                    </div>
+                    {incident.description && (
+                      <p className="text-gray-400 text-sm mb-3">{incident.description}</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      {incident.severity && (
+                        <div>
+                          <span className="text-gray-500">Severity:</span>
+                          <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${getSeverityColor(incident.severity)}`}>
+                            {incident.severity}
+                          </span>
+                        </div>
+                      )}
+                      {incident.team && (
+                        <div>
+                          <span className="text-gray-500">Team:</span>
+                          <span className="ml-2 text-gray-300">{incident.team}</span>
+                        </div>
+                      )}
+                      {incident.resolution && (
+                        <div className="md:col-span-2">
+                          <span className="text-gray-500">Resolution:</span>
+                          <p className="text-gray-300 mt-1">{incident.resolution}</p>
+                        </div>
+                      )}
+                      {incident.resolution_time && (
+                        <div>
+                          <span className="text-gray-500">Resolution Time:</span>
+                          <span className="ml-2 text-green-400 font-medium">{incident.resolution_time}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-4">
             <button

@@ -5,6 +5,7 @@ from typing import Any, Dict
 import json
 from app.agents.base_agent import BaseAgent
 from app.models.task import Severity
+from app.core.incident_store import incident_store
 
 
 class TriageAgent(BaseAgent):
@@ -161,17 +162,11 @@ Provide your triage analysis in the specified JSON format."""
     ) -> list[Dict[str, Any]]:
         """
         Find similar past incidents using vector similarity search.
-        
-        In production, this would query ChromaDB with embeddings.
-        For now, returns empty list.
         """
-        # TODO: Implement vector similarity search with ChromaDB
-        # This would:
-        # 1. Generate embeddings for title + description
-        # 2. Query ChromaDB for similar incidents
-        # 3. Return top N similar incidents with their resolutions
-        
-        return []
+        query = f"{title}. {description}"
+        results = incident_store.find_similar_incidents(query, n_results=3)
+        self.logger.info("similar_incidents_found", count=len(results))
+        return results
     
     async def update_incident_history(
         self,
@@ -185,15 +180,18 @@ Provide your triage analysis in the specified JSON format."""
             incident_data: Original incident data
             resolution: How the incident was resolved
         """
-        # TODO: Implement ChromaDB storage
-        # This would:
-        # 1. Create embeddings for incident
-        # 2. Store in ChromaDB with metadata
-        # 3. Link to resolution steps
-        
-        self.logger.info(
-            "incident_history_updated",
-            incident_title=incident_data.get("title")
+        import uuid
+        incident_store.store_incident(
+            incident_id=str(uuid.uuid4()),
+            title=incident_data.get("title", ""),
+            description=incident_data.get("description", ""),
+            metadata={
+                "severity": resolution.get("severity", ""),
+                "team": resolution.get("team", ""),
+                "resolution": resolution.get("resolution", ""),
+                "resolution_time": resolution.get("resolution_time", ""),
+            }
         )
+        self.logger.info("incident_history_updated", title=incident_data.get("title"))
 
 # Made with Bob
