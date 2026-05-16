@@ -30,9 +30,11 @@ class Settings(BaseSettings):
     # LLM Configuration
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
-    llm_provider: str = "openai"
-    llm_model: str = "gpt-4-turbo-preview"
+    dashscope_api_key: Optional[str] = None
+    llm_provider: str = "dashscope"  # openai, anthropic, or dashscope
+    llm_model: str = "qwen3.6-plus"
     llm_temperature: float = 0.7
+    dashscope_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     
     # Database
     database_url: str = "postgresql://devops_user:devops_pass@localhost:5432/devops_autopilot"

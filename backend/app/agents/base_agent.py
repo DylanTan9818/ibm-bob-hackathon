@@ -45,6 +45,15 @@ class BaseAgent(ABC):
                 anthropic_api_key=settings.anthropic_api_key,
                 max_retries=settings.max_agent_retries,
             )
+        elif settings.llm_provider == "dashscope":
+            # DashScope/Qwen uses OpenAI-compatible API
+            return ChatOpenAI(
+                model=settings.llm_model,
+                temperature=settings.llm_temperature,
+                openai_api_key=settings.dashscope_api_key,
+                openai_api_base=settings.dashscope_base_url,
+                max_retries=settings.max_agent_retries,
+            )
         else:
             raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
     
