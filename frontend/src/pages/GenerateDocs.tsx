@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 import mermaid from 'mermaid'
 
@@ -443,12 +444,12 @@ export default function GenerateDocs() {
               Generate More Documentation
             </button>
             {taskId && (
-              <a
-                href={`/tasks/${taskId}`}
+              <Link
+                to={`/tasks/${taskId}`}
                 className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded font-medium transition inline-block"
               >
                 View Full Task Details
-              </a>
+              </Link>
             )}
           </div>
         </div>

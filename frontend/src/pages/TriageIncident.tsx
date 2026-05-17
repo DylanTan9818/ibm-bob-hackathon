@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -362,12 +363,12 @@ export default function TriageIncident() {
               Triage Another Incident
             </button>
             {taskId && (
-              <a
-                href={`/tasks/${taskId}`}
+              <Link
+                to={`/tasks/${taskId}`}
                 className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded font-medium transition inline-block"
               >
                 View Full Task Details
-              </a>
+              </Link>
             )}
           </div>
         </div>

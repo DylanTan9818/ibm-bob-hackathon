@@ -80,7 +80,19 @@ Provide your review in JSON format:
         }
     ],
     "complexity_score": 0.0-10.0,
-    "recommendation": "approve|request_changes|needs_discussion"
+    "recommendation": "approve|request_changes|needs_discussion",
+    "dependency_analysis": {
+        "changed_files": ["list of files modified in PR"],
+        "dependencies": [
+            {
+                "file": "path/to/file",
+                "depends_on": ["list of files this file imports/requires"],
+                "depended_by": ["list of files that import this file"],
+                "risk_level": "high|medium|low"
+            }
+        ],
+        "impact_summary": "Brief summary of change impact"
+    }
 }"""
     
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -114,7 +126,7 @@ Provide your review in JSON format:
         diff = input_data.get("diff", "")
         
         # Build user prompt
-        user_prompt = f"""Review this pull request:
+        user_prompt = f"""Review this pull request and analyze file dependencies:
 
 Repository: {repository}
 PR #{pr_number}: {title}
@@ -129,7 +141,16 @@ Files Changed ({len(files_changed)}):
 Diff:
 {diff if diff else "Diff not provided - review based on file list and description"}
 
-Provide a comprehensive review in the specified JSON format."""
+IMPORTANT: Analyze the dependencies between files:
+1. For each changed file, identify which files it imports/requires
+2. Identify which files might be affected by these changes
+3. Assess the risk level based on:
+   - Number of dependencies
+   - Criticality of dependent files
+   - Test coverage
+4. Provide a dependency graph structure for visualization
+
+Provide a comprehensive review in the specified JSON format including dependency_analysis."""
         
         try:
             # Invoke LLM for PR review
@@ -186,6 +207,12 @@ Provide a comprehensive review in the specified JSON format."""
                 result["security_issues"] = []
             if "complexity_score" not in result:
                 result["complexity_score"] = 5.0
+            if "dependency_analysis" not in result:
+                result["dependency_analysis"] = {
+                    "changed_files": [],
+                    "dependencies": [],
+                    "impact_summary": "Dependency analysis not available"
+                }
             
             return result
             
