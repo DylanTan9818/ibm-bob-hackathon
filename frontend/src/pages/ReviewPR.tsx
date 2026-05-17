@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import axios from 'axios'
+import DependencyGraph from '../components/DependencyGraph'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -20,6 +22,19 @@ interface SecurityIssue {
   recommendation: string
 }
 
+interface DependencyData {
+  file: string
+  depends_on: string[]
+  depended_by: string[]
+  risk_level: 'high' | 'medium' | 'low'
+}
+
+interface DependencyAnalysis {
+  changed_files: string[]
+  dependencies: DependencyData[]
+  impact_summary: string
+}
+
 interface PRReviewResult {
   approved: boolean
   security_issues: SecurityIssue[]
@@ -27,6 +42,7 @@ interface PRReviewResult {
   code_quality_score: number
   recommendations: string[]
   summary: string
+  dependency_analysis?: DependencyAnalysis
 }
 
 interface TaskResult {
@@ -350,6 +366,26 @@ export default function ReviewPR() {
             </div>
           </div>
 
+          {/* Dependency Graph */}
+          {result.data.dependency_analysis && result.data.dependency_analysis.dependencies.length > 0 && (
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="font-semibold mb-4 flex items-center text-lg">
+                <svg className="w-6 h-6 mr-2 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Dependency Impact Analysis
+              </h3>
+              <p className="text-gray-400 mb-4">{result.data.dependency_analysis.impact_summary}</p>
+              <DependencyGraph
+                dependencies={result.data.dependency_analysis.dependencies}
+                changedFiles={result.data.dependency_analysis.changed_files}
+              />
+              <div className="mt-4 text-sm text-gray-400">
+                <p>💡 <strong>Tip:</strong> Drag nodes to rearrange, zoom with mouse wheel, and click nodes for details</p>
+              </div>
+            </div>
+          )}
+
           {/* Security Issues */}
           {result.data.security_issues && result.data.security_issues.length > 0 && (
             <div className="bg-gray-800 rounded-lg p-6">
@@ -440,12 +476,12 @@ export default function ReviewPR() {
               Review Another PR
             </button>
             {taskId && (
-              <a
-                href={`/tasks/${taskId}`}
+              <Link
+                to={`/tasks/${taskId}`}
                 className="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded font-medium transition inline-block"
               >
                 View Full Task Details
-              </a>
+              </Link>
             )}
           </div>
         </div>
